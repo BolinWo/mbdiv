@@ -25,7 +25,7 @@ class PipelineConfig:
     # ---- Metadata ----
     meta_sample_col: str = "Sample"    # column name for sample IDs in metadata
     meta_group_col: str = "Group"      # column name for grouping variable
-    meta_numeric_col: str = ""         # optional numeric column for Spearman correlation (e.g. "CSVD")
+    meta_numeric_col: str = ""         # optional numeric column for Spearman correlation
 
     # ---- Step 1: Merge ----
     # Regex pattern to extract clean species name (remove [TAX_xxx] suffix etc.)
@@ -73,10 +73,10 @@ class PipelineConfig:
     group_order: List[str] = field(default_factory=list)
     # Group colors (auto-assigned if group not in dict)
     group_colors: Dict[str, str] = field(default_factory=lambda: {
-        "Normal": "#55A868",
-        "Low": "#4C72B0",
-        "Medium": "#DD8452",
-        "Heavy": "#C44E52",
+        "Control": "#55A868",
+        "Treatment": "#4C72B0",
+        "Group_C": "#DD8452",
+        "Group_D": "#C44E52",
     })
     # Species color palette for stacked bar
     species_palette: List[str] = field(default_factory=lambda: [

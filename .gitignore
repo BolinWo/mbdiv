@@ -35,6 +35,9 @@ synthetic_*/
 qa_final_test/
 cli_test_*/
 
+# Internal design notes (not for public release)
+references/
+
 # Data files (keep templates, exclude large data)
 *.xlsx
 !assets/*.xlsx

@@ -1,38 +1,38 @@
 # ============================================================
-# Microbiome Diversity Pipeline — Advanced Configuration
+# 宏基因组多样性分析流程 — 高级配置
 # ============================================================
 #
-# Most users DON'T need this file. The pipeline auto-detects
-# species columns, sample columns, taxonomy, groups, etc.
+# 大多数用户无需此文件。流程会自动检测
+# 物种列、样本列、分类学列、分组等。
 #
-# Quick start (no config needed):
-#   python run_pipeline.py species.xlsx metadata.xlsx -o results
+# 快速开始（无需配置文件）：
+#   mbdiv species.xlsx metadata.xlsx -o results
 #
-# Use this file ONLY when you need to override auto-detection:
-#   python run_pipeline.py species.xlsx metadata.xlsx --config config.yaml
+# 仅在需要覆盖自动检测结果时使用此文件：
+#   mbdiv species.xlsx metadata.xlsx -c config.yaml
 #
-# Lines starting with "#" are comments. Uncomment to activate.
+# 以 "#" 开头的行为注释，取消注释即可启用。
 # ============================================================
 
-# ---- Output ----
-# output_dir: "result"       # Same as -o flag
+# ---- 输出 ----
+# output_dir: "result"       # 等同于 -o 参数
 
-# ---- Column names (auto-detected if empty) ----
-# species_col: ""            # e.g. "#Species"
-# tax_col: ""                # e.g. "#Taxonomy"
-# sample_prefix: ""          # e.g. "P" — sample columns start with this
+# ---- 列名（留空则自动检测）----
+# species_col: ""            # 如 "#Species"
+# tax_col: ""                # 如 "#Taxonomy"
+# sample_prefix: ""          # 如 "S" — 样本列以此前缀开头
 
-# ---- Metadata columns ----
+# ---- 元数据列 ----
 # meta_sample_col: "Sample"
 # meta_group_col: "Group"
-# meta_numeric_col: ""       # e.g. "CSVD" — for Spearman correlation
+# meta_numeric_col: ""       # 数值列名，用于 Spearman 相关性分析
 
-# ---- Alpha diversity ----
+# ---- Alpha 多样性 ----
 # alpha_metrics: ["Observed", "Shannon", "Simpson", "Chao1"]
-# alpha_test: "kruskal"      # "kruskal" or "anova"
+# alpha_test: "kruskal"      # "kruskal" 或 "anova"
 # alpha_spearman: true
 
-# ---- Beta diversity ----
+# ---- Beta 多样性 ----
 # beta_distance: "braycurtis"
 # beta_permanova_permutations: 999
 # pcoa_ellipse: true
@@ -40,11 +40,11 @@
 # ---- Top-N ----
 # top_n: 10
 
-# ---- Plotting ----
-# group_order: []            # e.g. ["Normal", "Low", "Medium", "Heavy"]
-# fig_format: "both"         # "pdf", "png", or "both"
+# ---- 绘图 ----
+# group_order: []            # 如 ["Control", "Treatment"]
+# fig_format: "both"         # "pdf"、"png" 或 "both"
 
-# ---- Filter keywords for virus/fungi removal ----
+# ---- 病毒/真菌过滤关键词 ----
 # virus_keywords: ["Viruses", "Duplodnaviria", "Caudoviricetes", "phage"]
 # fungi_keywords: ["Fungi", "Ascomycota", "Basidiomycota", "Saccharomycetes"]
 # filter_domains: ["d__Viruses", "k__Viruses"]

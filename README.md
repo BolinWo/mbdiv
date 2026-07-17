@@ -1,44 +1,44 @@
-# mbdiv — Microbiome Diversity Analysis Pipeline
+# mbdiv — 宏基因组多样性分析流程
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![pyflakes clean](https://img.shields.io/badge/pyflakes-clean-green.svg)](https://github.com/PyCQA/pyflakes)
 
-One-command pipeline for species-level metagenomic diversity analysis.
+一条命令完成物种级宏基因组多样性分析。
 
 ```
-raw_data  ──►  merge species  ──►  normalize  ──►  alpha diversity (4 indices + boxplots)
-                                      │
-              beta diversity  ◄───────┘  (Bray-Curtis + PCoA + PERMANOVA)
-                                      │
-              filter viruses/fungi  ──►  Top-N stacked bar + heatmap
+raw_data  ──►  物种合并  ──►  归一化  ──►  Alpha 多样性（4 指数 + 箱线图）
+                                  │
+              Beta 多样性  ◄──────┘  （Bray-Curtis + PCoA + PERMANOVA）
+                                  │
+              过滤病毒/真菌  ──►  Top-N 物种堆叠图 + 热图
 ```
 
-## Quick Start
+## 快速开始
 
 ```bash
-# Install
+# 安装
 pip install mbdiv-1.0.0-py3-none-any.whl[full]
 
-# Run — that's it
+# 运行 — 就这么简单
 mbdiv species.xlsx metadata.xlsx
 ```
 
-Output appears in `./result/` with all tables, statistics, and figures.
+所有结果（数据表、统计量、图表）自动输出到 `./result/` 目录。
 
-## Installation
+## 安装方式
 
-### Option 1: From wheel (recommended)
+### 方式一：Wheel 安装（推荐）
 
 ```bash
-# Core features only (alpha, beta, top-N without scikit-bio)
+# 仅核心功能（Alpha、Beta、Top-N，不含 scikit-bio）
 pip install mbdiv-1.0.0-py3-none-any.whl
 
-# Full features (PCoA via scikit-bio + YAML config support)
+# 完整功能（scikit-bio PCoA + YAML 配置支持）
 pip install mbdiv-1.0.0-py3-none-any.whl[full]
 ```
 
-### Option 2: From source
+### 方式二：源码安装
 
 ```bash
 git clone https://github.com/BolinWo/mbdiv.git
@@ -46,113 +46,113 @@ cd mbdiv
 pip install .[full]
 ```
 
-### Option 3: Portable zip (offline machines)
+### 方式三：便携 ZIP（离线环境）
 
 ```bash
-# Unzip mbdiv-1.0.0-portable.zip
-# Windows: double-click setup.bat
+# 解压 mbdiv-1.0.0-portable.zip
+# Windows: 双击 setup.bat
 # Linux/Mac: bash setup.sh
 ```
 
-## Usage
+## 使用方法
 
-### Basic
+### 基本用法
 
 ```bash
-# Minimal — auto-detects everything (column names, sample prefix, groups)
+# 最简模式 — 自动检测列名、样本前缀、分组
 mbdiv species.xlsx metadata.xlsx
 
-# Specify output directory and top-N
+# 指定输出目录和 Top-N 数量
 mbdiv species.xlsx metadata.xlsx -o my_results -t 15
 ```
 
-### All Parameters (single-letter flags)
+### 全部参数（单字母旗标）
 
-| Flag | Long form | Default | Description |
-|------|-----------|---------|-------------|
-| *(positional)* | — | — | Species abundance Excel file |
-| *(positional)* | — | — | Sample metadata Excel file |
-| `-r` | `--raw` | — | Species abundance Excel (alternative to positional) |
-| `-m` | `--meta` | — | Sample metadata Excel (alternative to positional) |
-| `-o` | `--output` | `result` | Output directory |
-| `-t` | `--top` | `10` | Top-N species count for stacked bar |
-| `-c` | `--config` | — | YAML config file for advanced options |
-| `-h` | `--help` | — | Show help message |
+| 旗标 | 完整形式 | 默认值 | 说明 |
+|------|----------|--------|------|
+| *(位置参数)* | — | — | 物种丰度 Excel 文件 |
+| *(位置参数)* | — | — | 样本元数据 Excel 文件 |
+| `-r` | `--raw` | — | 物种丰度 Excel（位置参数的替代写法） |
+| `-m` | `--meta` | — | 样本元数据 Excel（位置参数的替代写法） |
+| `-o` | `--output` | `result` | 输出目录 |
+| `-t` | `--top` | `10` | Top-N 物种数量（堆叠图） |
+| `-c` | `--config` | — | YAML 配置文件（高级选项） |
+| `-h` | `--help` | — | 显示帮助信息 |
 
-### Two invocation styles
+### 两种调用风格
 
 ```bash
-# Style 1: positional (concise)
+# 风格一：位置参数（简洁）
 mbdiv species.xlsx metadata.xlsx -o results -t 10
 
-# Style 2: explicit flags (readable)
+# 风格二：显式旗标（清晰）
 mbdiv -r species.xlsx -m metadata.xlsx -o results -t 10
 ```
 
-### Advanced: YAML config
+### 高级：YAML 配置文件
 
-For reproducible analyses, save your settings as `config.yaml`:
+如需可重复分析，可将设置保存为 `config.yaml`：
 
 ```bash
 mbdiv species.xlsx metadata.xlsx -c config.yaml
 ```
 
-See `assets/config_template.yaml` for all configurable options including:
-- Column name overrides (species, taxonomy, sample prefix)
-- Group order and colors
-- Alpha diversity metrics and statistical test
-- Beta distance metric and PERMANOVA permutations
-- Virus/fungi filter keywords
-- Figure format (PDF/PNG/both) and DPI
+参考 `assets/config_template.yaml` 了解全部可配置项，包括：
+- 列名覆盖（物种列、分类学列、样本前缀）
+- 分组顺序与颜色
+- Alpha 多样性指标与统计检验方法
+- Beta 距离度量与 PERMANOVA 置换次数
+- 病毒/真菌过滤关键词
+- 图表格式（PDF/PNG/两者）与 DPI
 
-## Input Format
+## 输入格式
 
-### raw_data.xlsx — Species abundance table
+### raw_data.xlsx — 物种丰度表
 
-| #Species | P001 | P002 | ... | #Taxonomy |
-|----------|------|------|-----|-----------|
-| E.coli [TAX_001] | 152.3 | 89.1 | ... | d__Bacteria;p__Proteobacteria;... |
-| B.fragilis [TAX_002] | 203.5 | 0.0 | ... | d__Bacteria;p__Bacteroidota;... |
+| #Species | Sample_01 | Sample_02 | ... | #Taxonomy |
+|----------|-----------|-----------|-----|-----------|
+| Escherichia coli [TAX_001] | 152.3 | 89.1 | ... | d__Bacteria;p__Proteobacteria;... |
+| Bacteroides fragilis [TAX_002] | 203.5 | 0.0 | ... | d__Bacteria;p__Bacteroidota;... |
 
-- **First column**: species name (auto-detected: `#Species`, `Species`, or any column starting with `#`)
-- **Middle columns**: sample abundance values (numeric, auto-detected)
-- **Last column**: taxonomy string (auto-detected: any column containing "tax")
+- **第一列**：物种名称（自动检测：`#Species`、`Species` 或任何以 `#` 开头的列）
+- **中间列**：样本丰度值（数值型，自动检测）
+- **最后一列**：分类学字符串（自动检测：包含 "tax" 的列）
 
-### meta_data.xlsx — Sample metadata
+### meta_data.xlsx — 样本元数据
 
-| Sample | Group | CSVD |
-|--------|-------|------|
-| P001 | Normal | 0 |
-| P002 | Heavy | 3 |
+| Sample | Group | Score |
+|--------|-------|-------|
+| Sample_01 | Control | 0 |
+| Sample_02 | Treatment | 3 |
 
-- **Sample** column: sample IDs matching raw_data column headers
-- **Group** column: group assignment for comparison
-- **Numeric column** (optional): for Spearman correlation with alpha diversity
+- **Sample** 列：样本 ID，需与 raw_data 列名匹配
+- **Group** 列：分组信息，用于组间比较
+- **数值列**（可选）：用于与 Alpha 多样性做 Spearman 相关性分析
 
-**All column names are auto-detected.** No need to specify them unless your format is unusual.
+**所有列名均自动检测。** 除非格式特殊，无需手动指定。
 
-## Output Structure
+## 输出结构
 
 ```
-<output_dir>/
-├── pipeline_report.txt              # Full audit report
-├── data/                            # Intermediate data tables
-│   ├── merged_species_clean.xlsx    #   Step 1: merged + zero-removed
-│   ├── zero_abundance_taxa.xlsx     #   Step 1: removed taxa log
-│   ├── relative_abundance.xlsx      #   Step 2: normalized (fraction)
-│   ├── relative_abundance_percent.xlsx  #  Step 2: normalized (%)
-│   └── sample_rpkm_summary.xlsx     #   Step 2: sequencing depth
+<输出目录>/
+├── pipeline_report.txt              # 完整流程审计报告
+├── data/                            # 中间数据表
+│   ├── merged_species_clean.xlsx    #   步骤1：合并 + 去零后
+│   ├── zero_abundance_taxa.xlsx     #   步骤1：被移除的分类记录
+│   ├── relative_abundance.xlsx      #   步骤2：归一化（小数）
+│   ├── relative_abundance_percent.xlsx  # 步骤2：归一化（百分比）
+│   └── sample_rpkm_summary.xlsx     #   步骤2：测序深度统计
 └── result/
-    ├── step3_alpha/                 # Alpha diversity
-    │   ├── alpha_diversity.xlsx     #   4 indices × N samples
-    │   ├── alpha_statistics.xlsx    #   Kruskal-Wallis p-values
-    │   ├── alpha_spearman.xlsx      #   Spearman correlation (if numeric col)
+    ├── step3_alpha/                 # Alpha 多样性
+    │   ├── alpha_diversity.xlsx     #   4 指数 × N 样本
+    │   ├── alpha_statistics.xlsx    #   Kruskal-Wallis p 值
+    │   ├── alpha_spearman.xlsx      #   Spearman 相关性（如有数值列）
     │   └── figures/
     │       ├── Observed_boxplot.{pdf,png}
     │       ├── Shannon_boxplot.{pdf,png}
     │       ├── Simpson_boxplot.{pdf,png}
     │       └── Chao1_boxplot.{pdf,png}
-    ├── step4_beta/                  # Beta diversity
+    ├── step4_beta/                  # Beta 多样性
     │   ├── distance/
     │   │   └── braycurtis_distance.xlsx
     │   ├── pcoa/
@@ -162,7 +162,7 @@ See `assets/config_template.yaml` for all configurable options including:
     │   │   └── PERMANOVA_result.txt
     │   └── figures/
     │       └── PCoA_BrayCurtis.{pdf,png}
-    └── step5/                       # Top-N composition
+    └── step5/                       # Top-N 物种组成
         ├── bacteria_species.xlsx
         ├── bacteria_relative_abundance.xlsx
         ├── top10_species.xlsx
@@ -172,73 +172,73 @@ See `assets/config_template.yaml` for all configurable options including:
             └── top10_individual_heatmap.{pdf,png}
 ```
 
-## Pipeline Steps
+## 分析流程
 
-### Step 1: Merge & Clean
-- Merge same-name species (sum abundance)
-- Remove all-zero abundance taxa
-- Extract clean species names
+### 步骤 1：合并与清洗
+- 同名物种合并（丰度求和）
+- 移除全零丰度分类
+- 提取简洁物种名
 
-### Step 2: Normalize
-- Per-sample relative abundance (column sum → 1.0)
-- Save both fractional and percentage versions
-- Sequencing depth summary
+### 步骤 2：归一化
+- 按样本计算相对丰度（列和归一化为 1.0）
+- 同时保存小数和百分比两个版本
+- 测序深度统计
 
-### Step 3: Alpha Diversity
-- **Observed** — species richness
-- **Shannon** — H' index (natural log)
-- **Simpson** — Gini-Simpson (1-D)
-- **Chao1** — richness estimator
-- Kruskal-Wallis test across groups
-- Optional Spearman correlation with numeric metadata
-- Boxplot + jitter visualization (PDF + PNG)
+### 步骤 3：Alpha 多样性
+- **Observed** — 物种丰富度
+- **Shannon** — H' 指数（自然对数）
+- **Simpson** — Gini-Simpson（1-D）
+- **Chao1** — 丰富度估计量
+- Kruskal-Wallis 组间检验
+- 可选：与数值型元数据的 Spearman 相关性
+- 箱线图 + 抖动点可视化（PDF + PNG）
 
-### Step 4: Beta Diversity
-- Bray-Curtis distance matrix
-- PCoA ordination (scikit-bio or SVD fallback)
-- PERMANOVA test (999 permutations)
-- PCoA scatter plot with 95% confidence ellipses
-- Dynamic axis labels (variance %) and PERMANOVA p-value annotation
+### 步骤 4：Beta 多样性
+- Bray-Curtis 距离矩阵
+- PCoA 排序（scikit-bio，不可用时降级为 SVD）
+- PERMANOVA 检验（999 次置换）
+- PCoA 散点图 + 95% 置信椭圆
+- 动态坐标轴标签（方差解释百分比）与 PERMANOVA p 值标注
 
-### Step 5: Top-N Composition
-- Filter out viruses and fungi by taxonomy keywords
-- Recalculate relative abundance on bacteria-only data
-- Select Top-N species by mean abundance
-- Group-level stacked bar chart
-- Individual sample heatmap
+### 步骤 5：Top-N 物种组成
+- 根据分类学关键词过滤病毒和真菌
+- 在仅细菌数据上重新计算相对丰度
+- 按平均丰度选取 Top-N 物种
+- 分组水平堆叠柱状图
+- 个体样本热图
 
-## Dependencies
+## 依赖
 
-| Package | Required | Purpose |
-|---------|----------|---------|
-| pandas | Yes | Data manipulation |
-| numpy | Yes | Numerical computation |
-| scipy | Yes | Statistics + distance |
-| matplotlib | Yes | Plotting |
-| seaborn | Yes | Statistical visualization |
-| openpyxl | Yes | Excel I/O |
-| scikit-bio | Optional | PCoA + PERMANOVA (falls back to manual SVD) |
-| pyyaml | Optional | YAML config file support |
+| 包名 | 是否必需 | 用途 |
+|------|----------|------|
+| pandas | 是 | 数据处理 |
+| numpy | 是 | 数值计算 |
+| scipy | 是 | 统计 + 距离计算 |
+| matplotlib | 是 | 绘图 |
+| seaborn | 是 | 统计可视化 |
+| openpyxl | 是 | Excel 读写 |
+| scikit-bio | 可选 | PCoA + PERMANOVA（不可用时降级为手动 SVD） |
+| pyyaml | 可选 | YAML 配置文件支持 |
 
-## Reproducibility
+## 可重复性
 
-The pipeline generates a `pipeline_report.txt` in the output directory with:
-- Input file paths
-- All output file paths
-- Key statistical results (PERMANOVA p-value)
-- Total elapsed time
+流程在输出目录生成 `pipeline_report.txt`，包含：
+- 输入文件路径
+- 全部输出文件路径
+- 关键统计结果（PERMANOVA p 值等）
+- 总运行时间
 
-For exact reproducibility, save your YAML config and use the same input files.
+如需精确复现，请保存 YAML 配置并使用相同的输入文件。
 
-## License
+## 许可证
 
-MIT — see [LICENSE](LICENSE)
+MIT — 详见 [LICENSE](LICENSE)
 
-## Citation
+## 引用
 
-If you use mbdiv in your research, please cite:
+如果在研究中使用了 mbdiv，请引用：
 
 ```
-mbdiv: A single-command microbiome diversity analysis pipeline
+mbdiv: 单命令宏基因组多样性分析流程
 https://github.com/BolinWo/mbdiv
 ```
