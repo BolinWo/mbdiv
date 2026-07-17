@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test outputs
+result/
+*_test_output/
+*_test_v2/
+pipeline_test_*/
+synthetic_*/
+qa_final_test/
+cli_test_*/
+
+# Data files (keep templates, exclude large data)
+*.xlsx
+!assets/*.xlsx
+!data/*.xlsx

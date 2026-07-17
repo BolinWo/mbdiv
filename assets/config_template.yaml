@@ -1,0 +1,50 @@
+# ============================================================
+# Microbiome Diversity Pipeline — Advanced Configuration
+# ============================================================
+#
+# Most users DON'T need this file. The pipeline auto-detects
+# species columns, sample columns, taxonomy, groups, etc.
+#
+# Quick start (no config needed):
+#   python run_pipeline.py species.xlsx metadata.xlsx -o results
+#
+# Use this file ONLY when you need to override auto-detection:
+#   python run_pipeline.py species.xlsx metadata.xlsx --config config.yaml
+#
+# Lines starting with "#" are comments. Uncomment to activate.
+# ============================================================
+
+# ---- Output ----
+# output_dir: "result"       # Same as -o flag
+
+# ---- Column names (auto-detected if empty) ----
+# species_col: ""            # e.g. "#Species"
+# tax_col: ""                # e.g. "#Taxonomy"
+# sample_prefix: ""          # e.g. "P" — sample columns start with this
+
+# ---- Metadata columns ----
+# meta_sample_col: "Sample"
+# meta_group_col: "Group"
+# meta_numeric_col: ""       # e.g. "CSVD" — for Spearman correlation
+
+# ---- Alpha diversity ----
+# alpha_metrics: ["Observed", "Shannon", "Simpson", "Chao1"]
+# alpha_test: "kruskal"      # "kruskal" or "anova"
+# alpha_spearman: true
+
+# ---- Beta diversity ----
+# beta_distance: "braycurtis"
+# beta_permanova_permutations: 999
+# pcoa_ellipse: true
+
+# ---- Top-N ----
+# top_n: 10
+
+# ---- Plotting ----
+# group_order: []            # e.g. ["Normal", "Low", "Medium", "Heavy"]
+# fig_format: "both"         # "pdf", "png", or "both"
+
+# ---- Filter keywords for virus/fungi removal ----
+# virus_keywords: ["Viruses", "Duplodnaviria", "Caudoviricetes", "phage"]
+# fungi_keywords: ["Fungi", "Ascomycota", "Basidiomycota", "Saccharomycetes"]
+# filter_domains: ["d__Viruses", "k__Viruses"]

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mbdiv"
+version = "1.0.0"
+description = "Microbiome Diversity Analysis Pipeline — alpha/beta diversity + top-N composition in one command"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    {name = "BolinWo"},
+]
+keywords = ["microbiome", "diversity", "alpha", "beta", "metagenomics", "PCoA", "PERMANOVA"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "pandas>=1.5",
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "matplotlib>=3.6",
+    "seaborn>=0.12",
+    "openpyxl>=3.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "scikit-bio>=0.5",
+    "pyyaml>=6.0",
+]
+dev = [
+    "build>=1.0",
+    "pytest>=7.0",
+]
+
+[project.scripts]
+mbdiv = "mbdiv.cli:main"
+
+[project.urls]
+Documentation = "https://github.com/BolinWo/mbdiv"
+Repository = "https://github.com/BolinWo/mbdiv"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mbdiv = ["*.yaml", "*.yml"]
