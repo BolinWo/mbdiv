@@ -1,17 +1,4 @@
-"""
-Step 4: Beta diversity analysis.
-
-- Bray-Curtis distance matrix
-- PCoA ordination
-- PERMANOVA test
-- PCoA scatter plot with confidence ellipses
-
-Input:  relative_abundance.xlsx, metadata.xlsx
-Output: result/step4_beta/distance/bray_curtis_distance.xlsx,
-        result/step4_beta/pcoa/pcoa_coordinates.xlsx, pcoa_variance.xlsx,
-        result/step4_beta/statistics/PERMANOVA_result.txt,
-        result/step4_beta/figures/PCoA_BrayCurtis.{pdf,png}
-"""
+"""Step 4: beta diversity - Bray-Curtis distance, PCoA, PERMANOVA."""
 
 import os
 import numpy as np
@@ -23,10 +10,6 @@ from .theme import set_theme, plot_pcoa
 
 
 def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
-    """
-    Execute Step 4: beta diversity.
-    Returns (distance_path, pcoa_coords_path, permanova_p_value).
-    """
     print("\n" + "=" * 60)
     print("Step 4: Beta diversity analysis")
     print("=" * 60)
@@ -44,15 +27,12 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     for d in [dist_dir, pcoa_dir, stat_dir, fig_dir]:
         os.makedirs(d, exist_ok=True)
 
-    # --- Load data ---
     otu = pd.read_excel(rel_path, index_col=0)
     meta = pd.read_excel(meta_path)
 
-    # Transpose: samples x species
     otu_t = otu.T
     print(f"  Distance matrix input: {otu_t.shape[0]} samples x {otu_t.shape[1]} species")
 
-    # --- Bray-Curtis distance ---
     distance = pd.DataFrame(
         squareform(pdist(otu_t, metric=cfg.beta_distance)),
         index=otu_t.index,
@@ -62,7 +42,7 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     distance.to_excel(dist_path)
     print(f"  Distance matrix saved: {dist_path}")
 
-    # --- PCoA ---
+    # PCoA - prefer scikit-bio, fall back to manual SVD
     try:
         from skbio.stats.ordination import pcoa as skbio_pcoa
         from skbio.stats.distance import DistanceMatrix
@@ -89,7 +69,6 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
         coords, variance = _manual_pcoa(distance, cfg)
         print("  Manual PCoA computed")
 
-    # Save PCoA results
     coords_path = os.path.join(pcoa_dir, "pcoa_coordinates.xlsx")
     coords.to_excel(coords_path, index=False)
     print(f"  PCoA coordinates saved: {coords_path}")
@@ -98,7 +77,7 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     variance.to_excel(var_path, index=False)
     print(f"  PCoA variance saved: {var_path}")
 
-    # --- PERMANOVA ---
+    # PERMANOVA
     permanova_p = None
     try:
         from skbio.stats.distance import permanova
@@ -119,9 +98,8 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
         )
         permanova_p = permanova_result.get("p-value", None)
 
-        result_text = str(permanova_result)
         with open(os.path.join(stat_dir, "PERMANOVA_result.txt"), "w") as f:
-            f.write(result_text)
+            f.write(str(permanova_result))
         print(f"  PERMANOVA p-value: {permanova_p}")
         print(f"  PERMANOVA result saved: {os.path.join(stat_dir, 'PERMANOVA_result.txt')}")
 
@@ -135,7 +113,7 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
         with open(os.path.join(stat_dir, "PERMANOVA_result.txt"), "w") as f:
             f.write(f"PERMANOVA error: {e}\n")
 
-    # --- PCoA plot ---
+    # PCoA plot
     set_theme(cfg)
     group_order = cfg.get_group_order()
     colors = cfg.get_group_colors()
@@ -154,27 +132,22 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
 
 
 def _manual_pcoa(distance: pd.DataFrame, cfg: PipelineConfig):
-    """Manual PCoA via eigendecomposition of the distance matrix."""
+    """PCoA via eigendecomposition when scikit-bio is unavailable."""
     n = distance.shape[0]
     D = distance.values.astype(float)
 
-    # Double-centering: G = -0.5 * J * D^2 * J
     D_sq = D ** 2
     J = np.eye(n) - np.ones((n, n)) / n
     G = -0.5 * J @ D_sq @ J
 
-    # Eigendecomposition
     eigenvalues, eigenvectors = np.linalg.eigh(G)
 
-    # Sort descending
     idx = np.argsort(eigenvalues)[::-1]
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
 
-    # Coordinates
     coords = eigenvectors[:, :2] * np.sqrt(np.maximum(eigenvalues[:2], 0))
 
-    # Proportion explained
     total = np.sum(eigenvalues[eigenvalues > 0])
     prop_explained = eigenvalues / total if total > 0 else eigenvalues * 0
 

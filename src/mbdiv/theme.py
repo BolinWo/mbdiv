@@ -1,6 +1,4 @@
-"""
-Shared plotting theme and utilities.
-"""
+"""Shared plotting functions."""
 
 import os
 import matplotlib
@@ -15,7 +13,6 @@ from .config import PipelineConfig
 
 
 def set_theme(cfg: PipelineConfig):
-    """Apply global matplotlib/seaborn theme."""
     plt.rcParams.update({
         "font.family": "Arial",
         "font.size": 12,
@@ -30,7 +27,6 @@ def set_theme(cfg: PipelineConfig):
 
 
 def save_figure(fig, filepath_no_ext: str, cfg: PipelineConfig):
-    """Save figure in configured format(s)."""
     fmt = cfg.fig_format.lower()
     if fmt in ("pdf", "both"):
         fig.savefig(f"{filepath_no_ext}.pdf", dpi=cfg.savefig_dpi, bbox_inches="tight")
@@ -39,7 +35,6 @@ def save_figure(fig, filepath_no_ext: str, cfg: PipelineConfig):
 
 
 def confidence_ellipse(x, y, ax, color, alpha=0.12):
-    """Draw a 95% confidence ellipse on the axes."""
     if len(x) < 3:
         return
     cov = np.cov(x, y)
@@ -64,7 +59,6 @@ def plot_alpha_boxplot(
     group_order: List[str], colors: Dict[str, str],
     output_dir: str, cfg: PipelineConfig,
 ):
-    """Draw a boxplot + jitter for one alpha metric."""
     fig, ax = plt.subplots(figsize=(5.5, 4.5), dpi=cfg.fig_dpi)
 
     sns.boxplot(
@@ -99,10 +93,8 @@ def plot_pcoa(
     permanova_p: Optional[float],
     output_dir: str, cfg: PipelineConfig,
 ):
-    """Draw PCoA scatter with optional confidence ellipses."""
     df = pcoa_df.merge(meta_df, on=sample_col, how="left")
 
-    # Dynamic variance labels
     var1 = variance_df.iloc[0]["Explained_variance"] if len(variance_df) > 0 else 0
     var2 = variance_df.iloc[1]["Explained_variance"] if len(variance_df) > 1 else 0
     pc1_label = f"PC1 ({var1*100:.1f}%)"
@@ -128,10 +120,9 @@ def plot_pcoa(
     ax.legend(frameon=False, fontsize=12)
 
     if permanova_p is not None:
-        p_str = f"{permanova_p:.3f}"
         ax.text(
             0.95, 0.95,
-            f"PERMANOVA\np = {p_str}",
+            f"PERMANOVA\np = {permanova_p:.3f}",
             transform=ax.transAxes,
             ha="right", va="top", fontsize=11,
         )
@@ -150,7 +141,6 @@ def plot_top10_stacked(
     output_dir: str, cfg: PipelineConfig,
     filename: str = "top10_group_bar",
 ):
-    """Draw a stacked bar chart for top-N species composition by group."""
     n_species = len(species_order)
     palette = cfg.species_palette
     colors = [palette[i % len(palette)] for i in range(n_species)]

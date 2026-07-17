@@ -1,9 +1,4 @@
-"""
-Step 1: Merge same-name species and remove all-zero abundance taxa.
-
-Input:  raw abundance Excel with #Species / Species_name and #Taxonomy columns
-Output: merged_species_clean.xlsx, zero_abundance_taxa.xlsx
-"""
+"""Step 1: merge same-name species, drop all-zero taxa."""
 
 import os
 import pandas as pd
@@ -11,10 +6,9 @@ from .config import PipelineConfig
 
 
 def detect_columns(df: pd.DataFrame, cfg: PipelineConfig):
-    """Auto-detect species, taxonomy, and sample columns from the dataframe."""
     cols = df.columns.tolist()
 
-    # --- Species column ---
+    # species column
     if cfg.species_col and cfg.species_col in cols:
         species_col = cfg.species_col
     else:
@@ -22,7 +16,7 @@ def detect_columns(df: pd.DataFrame, cfg: PipelineConfig):
         species_col = candidates[0] if candidates else cols[0]
     cfg._species_col_detected = species_col
 
-    # --- Taxonomy column ---
+    # taxonomy column
     if cfg.tax_col and cfg.tax_col in cols:
         tax_col = cfg.tax_col
     else:
@@ -30,7 +24,6 @@ def detect_columns(df: pd.DataFrame, cfg: PipelineConfig):
         tax_col = candidates[0] if candidates else None
     cfg._tax_col_detected = tax_col or ""
 
-    # --- Sample columns ---
     non_sample = {species_col}
     if tax_col:
         non_sample.add(tax_col)
@@ -40,16 +33,12 @@ def detect_columns(df: pd.DataFrame, cfg: PipelineConfig):
     elif cfg.sample_col_keyword:
         sample_cols = [c for c in cols if cfg.sample_col_keyword in c and c not in non_sample]
     else:
-        # Auto-detect: numeric columns that are not species/taxonomy
-        sample_cols = []
-        for c in cols:
-            if c in non_sample:
-                continue
-            if pd.api.types.is_numeric_dtype(df[c]):
-                sample_cols.append(c)
+        sample_cols = [
+            c for c in cols
+            if c not in non_sample and pd.api.types.is_numeric_dtype(df[c])
+        ]
 
     if not sample_cols:
-        # Fallback: all non-meta columns
         sample_cols = [c for c in cols if c not in non_sample]
 
     cfg._sample_cols_detected = sample_cols
@@ -57,15 +46,10 @@ def detect_columns(df: pd.DataFrame, cfg: PipelineConfig):
 
 
 def extract_species_name(raw_name: str, split_char: str) -> str:
-    """Extract clean species name (e.g. 'Bacteriophage_sp. [TAX_009734245.1]' -> 'Bacteriophage_sp.')."""
     return str(raw_name).split(split_char)[0].strip()
 
 
 def run_step1(cfg: PipelineConfig) -> str:
-    """
-    Execute Step 1: merge species + remove zeros.
-    Returns path to merged_species_clean.xlsx.
-    """
     print("\n" + "=" * 60)
     print("Step 1: Merge same-name species & remove zero-abundance taxa")
     print("=" * 60)
@@ -78,15 +62,12 @@ def run_step1(cfg: PipelineConfig) -> str:
     print(f"  Taxonomy column: {tax_col}")
     print(f"  Sample columns ({len(sample_cols)}): {sample_cols[:5]}...")
 
-    # Extract clean species name
     df["Species_name"] = df[species_col].apply(
         lambda x: extract_species_name(x, cfg.species_name_split)
     )
 
-    # Merge by species name (sum abundance)
     merged = df.groupby("Species_name")[sample_cols].sum().reset_index()
 
-    # Attach taxonomy (first occurrence)
     if tax_col:
         taxonomy = df[["Species_name", tax_col]].drop_duplicates("Species_name")
         merged = merged.merge(taxonomy, on="Species_name", how="left")
@@ -94,10 +75,8 @@ def run_step1(cfg: PipelineConfig) -> str:
         tax_col = "#Taxonomy"
         merged["#Taxonomy"] = ""
 
-    # Reorder columns: Species_name, samples..., Taxonomy
     merged = merged[["Species_name"] + sample_cols + [tax_col]]
 
-    # Identify and save zero-abundance taxa
     zero_mask = merged[sample_cols].sum(axis=1) == 0
     zero_taxa = merged[zero_mask].copy()
 
@@ -113,7 +92,6 @@ def run_step1(cfg: PipelineConfig) -> str:
     print(f"  Zero-abundance taxa removed: {before - after}")
     print(f"  Remaining species: {after}")
 
-    # Save merged result
     merged_path = os.path.join(outdir, "merged_species_clean.xlsx")
     merged.to_excel(merged_path, index=False)
     print(f"  Saved: {merged_path}")

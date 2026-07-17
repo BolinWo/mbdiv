@@ -1,4 +1,4 @@
-"""Allow running as: python -m mbdiv"""
+"""Run with: python -m mbdiv"""
 from .cli import main
 
 if __name__ == "__main__":

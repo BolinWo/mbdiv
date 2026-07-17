@@ -1,15 +1,4 @@
-"""
-Step 3: Alpha diversity analysis.
-
-- Calculate Observed, Shannon, Simpson, Chao1 indices
-- Kruskal-Wallis (or ANOVA) test across groups
-- Optional Spearman correlation with numeric metadata
-- Boxplot + jitter visualization
-
-Input:  relative_abundance.xlsx, metadata.xlsx
-Output: result/step3_alpha/alpha_diversity.xlsx, alpha_statistics.xlsx,
-        alpha_spearman.xlsx, figures/*.pdf
-"""
+"""Step 3: alpha diversity (Observed, Shannon, Simpson, Chao1) + stats + boxplots."""
 
 import os
 import numpy as np
@@ -21,7 +10,6 @@ from .theme import set_theme, plot_alpha_boxplot
 
 
 def shannon_index(x):
-    """Shannon diversity index (natural log)."""
     x = x[x > 0]
     if len(x) == 0:
         return 0.0
@@ -30,7 +18,6 @@ def shannon_index(x):
 
 
 def simpson_index(x):
-    """Gini-Simpson diversity index (1 - D)."""
     x = x[x > 0]
     if len(x) == 0:
         return 0.0
@@ -39,15 +26,15 @@ def simpson_index(x):
 
 
 def chao1_index(x):
-    """Chao1 richness estimator."""
     x = x[x > 0]
     obs = len(x)
     if obs == 0:
         return 0.0
-    # Singletons and doubletons
     singles = np.sum(x == 1)
     doubles = np.sum(x == 2)
-    return obs + (singles * (singles - 1)) / (2 * (doubles + 1)) if doubles > 0 else obs + (singles * (singles - 1)) / 2
+    if doubles > 0:
+        return obs + (singles * (singles - 1)) / (2 * (doubles + 1))
+    return obs + (singles * (singles - 1)) / 2
 
 
 METRIC_FUNCS = {
@@ -59,10 +46,6 @@ METRIC_FUNCS = {
 
 
 def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) -> str:
-    """
-    Execute Step 3: alpha diversity.
-    Returns path to alpha_diversity.xlsx.
-    """
     print("\n" + "=" * 60)
     print("Step 3: Alpha diversity analysis")
     print("=" * 60)
@@ -78,14 +61,11 @@ def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) 
     species_col = "Species_name"
     sample_cols = cfg._sample_cols_detected
     if not sample_cols:
-        non_meta = [c for c in otu.columns if c != species_col and c != cfg._tax_col_detected]
-        sample_cols = non_meta
+        sample_cols = [c for c in otu.columns if c != species_col and c != cfg._tax_col_detected]
 
-    # Abundance matrix: rows=samples, cols=species
     otu_matrix = otu[sample_cols].T
     otu_matrix.index.name = cfg.meta_sample_col
 
-    # Calculate alpha metrics
     results = []
     for sample, row in otu_matrix.iterrows():
         abundance = row.values.astype(float)
@@ -102,7 +82,6 @@ def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) 
     print(f"  Metrics: {cfg.alpha_metrics}")
     print(alpha.head().to_string())
 
-    # Save alpha diversity
     outdir = os.path.join(cfg.output_dir, "result", "step3_alpha")
     os.makedirs(outdir, exist_ok=True)
 
@@ -110,11 +89,10 @@ def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) 
     alpha.to_excel(alpha_path, index=False)
     print(f"  Saved: {alpha_path}")
 
-    # --- Group comparison statistics ---
+    # group comparison
     group_col = cfg.meta_group_col
     group_order = sorted(alpha[group_col].dropna().unique())
     cfg._group_order_detected = group_order
-    # Use configured order if provided
     if cfg.group_order:
         group_order = [g for g in cfg.group_order if g in group_order]
 
@@ -145,7 +123,7 @@ def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) 
     print(f"  Statistics saved: {stat_path}")
     print(stat_df.to_string())
 
-    # --- Spearman correlation (optional) ---
+    # Spearman correlation
     if cfg.alpha_spearman and cfg.meta_numeric_col and cfg.meta_numeric_col in alpha.columns:
         spearman_results = []
         for metric in cfg.alpha_metrics:
@@ -165,7 +143,7 @@ def run_step3(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None) 
             print(f"  Spearman correlation saved: {spearman_path}")
             print(spearman_df.to_string())
 
-    # --- Plots ---
+    # plots
     set_theme(cfg)
     fig_dir = os.path.join(outdir, "figures")
     os.makedirs(fig_dir, exist_ok=True)

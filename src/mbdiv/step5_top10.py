@@ -1,16 +1,4 @@
-"""
-Step 5: Filter viruses/fungi, calculate Top-N species, and draw stacked bar.
-
-- Filter out viral and fungal taxa based on taxonomy keywords
-- Recalculate relative abundance on filtered data
-- Select Top-N species by mean abundance
-- Draw stacked bar plot (group-level mean composition)
-
-Input:  merged_species_clean.xlsx, metadata.xlsx
-Output: result/step5/bacteria_species.xlsx, bacteria_relative_abundance.xlsx,
-        top10_species.xlsx, top10_group_percentage.xlsx,
-        result/step5/figures/top10_group_bar.{pdf,png}
-"""
+"""Step 5: filter viruses/fungi, pick top-N species, draw stacked bar + heatmap."""
 
 import os
 import pandas as pd
@@ -20,10 +8,6 @@ from .theme import set_theme, plot_top10_stacked
 
 
 def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = None):
-    """
-    Execute Step 5: filter + top10 + stacked bar.
-    Returns (bacteria_rel_path, top10_species_path).
-    """
     print("\n" + "=" * 60)
     print("Step 5: Filter viruses/fungi + Top-N species stacked bar")
     print("=" * 60)
@@ -37,7 +21,6 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     fig_dir = os.path.join(base_dir, "figures")
     os.makedirs(fig_dir, exist_ok=True)
 
-    # --- Load data ---
     df = pd.read_excel(merged_path)
     meta = pd.read_excel(meta_path)
     print(f"  Input shape: {df.shape}")
@@ -46,20 +29,15 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     tax_col = cfg._tax_col_detected or "#Taxonomy"
     sample_cols = cfg._sample_cols_detected
     if not sample_cols:
-        non_meta = [c for c in df.columns if c != species_col and c != tax_col]
-        sample_cols = non_meta
+        sample_cols = [c for c in df.columns if c != species_col and c != tax_col]
 
-    # --- Filter viruses and fungi ---
+    # filter out viruses and fungi by taxonomy keywords
     taxonomy = df[tax_col].fillna("").astype(str)
-
     remove_mask = pd.Series(False, index=df.index)
 
-    # Keyword-based filtering
-    all_keywords = cfg.virus_keywords + cfg.fungi_keywords
-    for key in all_keywords:
+    for key in cfg.virus_keywords + cfg.fungi_keywords:
         remove_mask |= taxonomy.str.contains(key, case=False, regex=False)
 
-    # Domain-prefix filtering
     for domain in cfg.filter_domains:
         remove_mask |= taxonomy.str.contains(domain, case=False, regex=False)
 
@@ -67,21 +45,18 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     print(f"  Removed {remove_mask.sum()} viral/fungal taxa")
     print(f"  Remaining: {df_clean.shape[0]} species")
 
-    # Remove any all-zero rows after filtering
     zero_mask = df_clean[sample_cols].sum(axis=1) == 0
     df_clean = df_clean[~zero_mask].copy()
     print(f"  After zero removal: {df_clean.shape[0]} species")
 
-    # Save filtered bacteria species
     bacteria_path = os.path.join(base_dir, "bacteria_species.xlsx")
     df_clean.to_excel(bacteria_path, index=False)
     print(f"  Saved: {bacteria_path}")
 
-    # --- Relative abundance on filtered data ---
+    # recalculate relative abundance on filtered data
     abundance = df_clean[sample_cols].copy()
     col_sums = abundance.sum(axis=0)
 
-    # Guard: remove zero-total samples
     zero_cols = col_sums[col_sums == 0].index.tolist()
     if zero_cols:
         print(f"  WARNING: {len(zero_cols)} samples have zero total after filtering, excluded.")
@@ -100,7 +75,7 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     result.to_excel(bacteria_rel_path, index=False)
     print(f"  Saved: {bacteria_rel_path}")
 
-    # --- Top-N species ---
+    # top-N by mean abundance
     result["Mean_abundance"] = result[sample_cols].mean(axis=1)
     top_n_df = result.sort_values("Mean_abundance", ascending=False).head(cfg.top_n).copy()
     top_species = top_n_df[species_col].tolist()
@@ -113,22 +88,18 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     top_n_df.to_excel(top10_path, index=False)
     print(f"  Saved: {top10_path}")
 
-    # --- Group-level composition ---
+    # group-level composition
     composition = result[[species_col] + sample_cols].set_index(species_col).T
     composition.index.name = cfg.meta_sample_col
 
-    # Top-N + Others
     comp_top = composition[top_species].copy()
     comp_top["Others"] = composition.drop(columns=top_species).sum(axis=1)
 
-    # Add group info
     meta_indexed = meta.set_index(cfg.meta_sample_col)
     comp_top = comp_top.join(meta_indexed[[cfg.meta_group_col]])
 
-    # Group mean
     group_summary = comp_top.groupby(cfg.meta_group_col).mean()
 
-    # Ensure group order
     group_order = cfg.get_group_order()
     group_order = [g for g in group_order if g in group_summary.index]
     group_summary = group_summary.loc[group_order]
@@ -137,10 +108,9 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     group_summary.to_excel(pct_path)
     print(f"  Group percentages saved: {pct_path}")
 
-    # --- Stacked bar plot ---
+    # stacked bar
     set_theme(cfg)
 
-    # Sort species by overall mean abundance (descending), Others last
     species_order = (
         group_summary.drop(columns="Others")
         .mean()
@@ -156,7 +126,7 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     )
     print(f"  Stacked bar plot saved to: {fig_dir}")
 
-    # --- Individual sample heatmap (optional, save as PDF) ---
+    # per-sample heatmap
     try:
         import matplotlib.pyplot as plt
         import seaborn as sns

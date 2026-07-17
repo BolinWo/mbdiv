@@ -1,13 +1,4 @@
-#!/usr/bin/env python3
-"""
-mbdiv CLI — Microbiome Diversity Analysis Pipeline
-
-Usage:
-    mbdiv species.xlsx metadata.xlsx
-    mbdiv species.xlsx metadata.xlsx -o results -t 10
-    mbdiv species.xlsx metadata.xlsx -o results -c config.yaml
-    mbdiv -r species.xlsx -m metadata.xlsx -o results -t 15
-"""
+"""mbdiv CLI entry point."""
 
 import argparse
 import os
@@ -30,19 +21,16 @@ def parse_args():
         epilog=__doc__,
     )
 
-    # Positional args (also available as -r / -m flags for explicit style)
     parser.add_argument("raw_data", nargs="?", default=None,
                         help="Species abundance Excel file")
     parser.add_argument("meta_data", nargs="?", default=None,
                         help="Sample metadata Excel file")
 
-    # Single-letter aliases for positional args
     parser.add_argument("-r", "--raw", dest="raw_flag", default=None,
                         help="Species abundance Excel (alias for positional)")
     parser.add_argument("-m", "--meta", dest="meta_flag", default=None,
                         help="Sample metadata Excel (alias for positional)")
 
-    # All optional flags — single letter
     parser.add_argument("-o", "--output", default="result",
                         help="Output directory (default: result)")
     parser.add_argument("-t", "--top", type=int, default=10,
@@ -52,7 +40,6 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # Resolve: flag style takes priority over positional
     args.raw_data = args.raw_flag or args.raw_data
     args.meta_data = args.meta_flag or args.meta_data
 
@@ -67,7 +54,6 @@ def parse_args():
 
 
 def build_config(args) -> PipelineConfig:
-    """Build PipelineConfig from CLI arguments + optional YAML."""
     cfg = PipelineConfig()
 
     if args.config and os.path.exists(args.config):
@@ -94,7 +80,6 @@ def build_config(args) -> PipelineConfig:
 
 
 def validate_inputs(cfg: PipelineConfig):
-    """Validate input files and check dependencies."""
     errors = []
     if not os.path.exists(cfg.raw_data):
         errors.append(f"Raw data file not found: {cfg.raw_data}")
@@ -124,7 +109,6 @@ def validate_inputs(cfg: PipelineConfig):
 
 
 def run_pipeline(cfg: PipelineConfig):
-    """Run the full pipeline."""
     start = time.time()
 
     print("=" * 60)
