@@ -32,18 +32,22 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
         sample_cols = [c for c in df.columns if c != species_col and c != tax_col]
 
     # filter out viruses and fungi by taxonomy keywords
-    taxonomy = df[tax_col].fillna("").astype(str)
-    remove_mask = pd.Series(False, index=df.index)
+    if cfg.filter_viruses_fungi:
+        taxonomy = df[tax_col].fillna("").astype(str)
+        remove_mask = pd.Series(False, index=df.index)
 
-    for key in cfg.virus_keywords + cfg.fungi_keywords:
-        remove_mask |= taxonomy.str.contains(key, case=False, regex=False)
+        for key in cfg.virus_keywords + cfg.fungi_keywords:
+            remove_mask |= taxonomy.str.contains(key, case=False, regex=False)
 
-    for domain in cfg.filter_domains:
-        remove_mask |= taxonomy.str.contains(domain, case=False, regex=False)
+        for domain in cfg.filter_domains:
+            remove_mask |= taxonomy.str.contains(domain, case=False, regex=False)
 
-    df_clean = df.loc[~remove_mask].copy()
-    print(f"  Removed {remove_mask.sum()} viral/fungal taxa")
-    print(f"  Remaining: {df_clean.shape[0]} species")
+        df_clean = df.loc[~remove_mask].copy()
+        print(f"  Removed {remove_mask.sum()} viral/fungal taxa")
+        print(f"  Remaining: {df_clean.shape[0]} species")
+    else:
+        df_clean = df.copy()
+        print("  Virus/fungi filtering disabled")
 
     zero_mask = df_clean[sample_cols].sum(axis=1) == 0
     df_clean = df_clean[~zero_mask].copy()

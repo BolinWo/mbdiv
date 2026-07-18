@@ -43,32 +43,36 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     distance.to_excel(dist_path)
     print(f"  Distance matrix saved: {dist_path}")
 
-    # PCoA - prefer scikit-bio, fall back to manual
-    try:
-        from skbio.stats.ordination import pcoa as skbio_pcoa
-        from skbio.stats.distance import DistanceMatrix
-
-        dm = DistanceMatrix(distance.values, ids=distance.index.tolist())
-        pcoa_result = skbio_pcoa(dm)
-
-        coords = pcoa_result.samples.iloc[:, 0:2].copy()
-        coords.columns = ["PC1", "PC2"]
-        coords[cfg.meta_sample_col] = coords.index
-        coords = coords[[cfg.meta_sample_col, "PC1", "PC2"]]
-
-        variance = pd.DataFrame({
-            "Axis": [str(i) for i in pcoa_result.proportion_explained.index],
-            "Explained_variance": pcoa_result.proportion_explained.values,
-        }).iloc[:5]
-
-        print("  PCoA computed via scikit-bio")
-        print(f"  Variance explained: PC1={variance.iloc[0]['Explained_variance']*100:.1f}%, "
-              f"PC2={variance.iloc[1]['Explained_variance']*100:.1f}%")
-
-    except ImportError:
-        print("  scikit-bio not available, using manual PCoA (SVD-based)")
+    # PCoA - default manual (deterministic, matches original); optional skbio
+    if cfg.pcoa_engine == "manual":
+        print("  PCoA computed via manual eigendecomposition")
         coords, variance = _manual_pcoa(distance, cfg)
-        print("  Manual PCoA computed")
+    else:
+        try:
+            from skbio.stats.ordination import pcoa as skbio_pcoa
+            from skbio.stats.distance import DistanceMatrix
+
+            dm = DistanceMatrix(distance.values, ids=distance.index.tolist())
+            pcoa_result = skbio_pcoa(dm)
+
+            coords = pcoa_result.samples.iloc[:, 0:2].copy()
+            coords.columns = ["PC1", "PC2"]
+            coords[cfg.meta_sample_col] = coords.index
+            coords = coords[[cfg.meta_sample_col, "PC1", "PC2"]]
+
+            variance = pd.DataFrame({
+                "Axis": [str(i) for i in pcoa_result.proportion_explained.index],
+                "Explained_variance": pcoa_result.proportion_explained.values,
+            }).iloc[:5]
+
+            print("  PCoA computed via scikit-bio")
+            print(f"  Variance explained: PC1={variance.iloc[0]['Explained_variance']*100:.1f}%, "
+                  f"PC2={variance.iloc[1]['Explained_variance']*100:.1f}%")
+
+        except ImportError:
+            print("  scikit-bio not available, using manual PCoA (SVD-based)")
+            coords, variance = _manual_pcoa(distance, cfg)
+            print("  Manual PCoA computed")
 
     coords_path = os.path.join(pcoa_dir, "pcoa_coordinates.xlsx")
     coords.to_excel(coords_path, index=False)

@@ -41,9 +41,11 @@ class PipelineConfig:
     # step 4: beta diversity
     beta_distance: str = "braycurtis"
     beta_permanova_permutations: int = 999
+    pcoa_engine: str = "manual"  # "manual" or "skbio"
     pcoa_ellipse: bool = True  # needs >= 3 samples per group
 
     # step 5: top-N
+    filter_viruses_fungi: bool = True
     virus_keywords: List[str] = field(default_factory=lambda: [
         "Viruses", "Duplodnaviria", "Caudoviricetes",
         "phage", "bacteriophage",
@@ -56,7 +58,7 @@ class PipelineConfig:
         "d__Viruses", "k__Viruses",
     ])
     top_n: int = 10
-    top_n_mode: str = "overall_mean"  # "overall_mean" or "group_union"
+    top_n_mode: str = "group_union"  # "overall_mean" or "group_union"
 
     # plotting
     group_order: List[str] = field(default_factory=list)

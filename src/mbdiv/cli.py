@@ -104,8 +104,8 @@ def validate_inputs(cfg: PipelineConfig):
 
     import importlib.util
     if importlib.util.find_spec("skbio") is None:
-        print("  Note: scikit-bio not installed -> PCoA uses manual fallback, PERMANOVA skipped")
-        print("        Install with: pip install scikit-bio")
+        print("  Note: scikit-bio not installed -> PCoA uses the manual engine")
+        print("        (to use scikit-bio set pcoa_engine: 'skbio' in config and install scikit-bio)")
 
 
 def run_pipeline(cfg: PipelineConfig):
