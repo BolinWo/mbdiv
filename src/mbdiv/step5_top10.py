@@ -101,6 +101,8 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     group_summary = comp_top.groupby(cfg.meta_group_col).mean()
 
     group_order = cfg.get_group_order()
+    if not group_order:
+        group_order = sorted(meta[cfg.meta_group_col].dropna().unique().tolist())
     group_order = [g for g in group_order if g in group_summary.index]
     group_summary = group_summary.loc[group_order]
 

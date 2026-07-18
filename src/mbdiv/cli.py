@@ -124,7 +124,7 @@ def run_pipeline(cfg: PipelineConfig):
 
     merged_path = run_step1(cfg)
     rel_path = run_step2(cfg, merged_path)
-    alpha_path = run_step3(cfg, rel_path)
+    alpha_path = run_step3(cfg, merged_path)
     dist_path, coords_path, permanova_p = run_step4(cfg, rel_path)
     bacteria_rel_path, top10_path = run_step5(cfg, merged_path)
 

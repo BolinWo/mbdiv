@@ -105,6 +105,25 @@ mbdiv species.xlsx metadata.xlsx -c config.yaml
 - 病毒/真菌过滤关键词
 - 图表格式（PDF/PNG/两者）与 DPI
 
+### 分组排序
+
+图表中分组的显示顺序按以下优先级自动确定：
+
+1. **YAML 配置中的 `group_order`**（最高优先级）
+2. **元数据数值列的均值升序**（如 Score 列：Normal=0 < Low=1 < Medium=2 < Heavy=3）
+3. **元数据中分组的首次出现顺序**
+4. **字母序**（回退）
+
+无需手动指定即可获得符合临床/逻辑的分组排序。如需固定顺序，在 YAML 中设置：
+
+```yaml
+group_order:
+  - Normal
+  - Low
+  - Medium
+  - Heavy
+```
+
 ## 输入格式
 
 ### raw_data.xlsx — 物种丰度表
@@ -188,10 +207,12 @@ mbdiv species.xlsx metadata.xlsx -c config.yaml
 - **Observed** — 物种丰富度
 - **Shannon** — H' 指数（自然对数）
 - **Simpson** — Gini-Simpson（1-D）
-- **Chao1** — 丰富度估计量
+- **Chao1** — 丰富度估计量（仅整数 read count 数据可用；RPKM/相对丰度自动跳过）
 - Kruskal-Wallis 组间检验
-- 可选：与数值型元数据的 Spearman 相关性
+- 可选：与数值型元数据的 Spearman 相关性（自动检测数值列）
 - 箱线图 + 抖动点可视化（PDF + PNG）
+
+> **Chao1 说明**：Chao1 估计量依赖 singleton（count=1）和 doubleton（count=2）的计数，仅适用于整数 read count 数据。当输入为 RPKM 或相对丰度等连续值时，流程会自动跳过 Chao1 并打印警告。如需计算 Chao1，请提供原始 read count 数据。
 
 ### 步骤 4：Beta 多样性
 - Bray-Curtis 距离矩阵

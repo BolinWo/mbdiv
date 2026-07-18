@@ -116,6 +116,8 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     # PCoA plot
     set_theme(cfg)
     group_order = cfg.get_group_order()
+    if not group_order:
+        group_order = sorted(meta[cfg.meta_group_col].dropna().unique().tolist())
     colors = cfg.get_group_colors()
 
     plot_pcoa(
