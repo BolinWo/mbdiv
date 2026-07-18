@@ -39,6 +39,9 @@
 
 # ---- Top-N ----
 # top_n: 10
+# top_n_mode: "overall_mean"  # "overall_mean" 或 "group_union"
+#   overall_mean: 按所有样本均值选 Top-N
+#   group_union: 每组各自选 Top-N，取并集
 
 # ---- 绘图 ----
 # group_order: []            # 如 ["Control", "Treatment"]

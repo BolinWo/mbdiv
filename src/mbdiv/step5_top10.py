@@ -75,14 +75,54 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
     result.to_excel(bacteria_rel_path, index=False)
     print(f"  Saved: {bacteria_rel_path}")
 
-    # top-N by mean abundance
+    # top-N selection
     result["Mean_abundance"] = result[sample_cols].mean(axis=1)
-    top_n_df = result.sort_values("Mean_abundance", ascending=False).head(cfg.top_n).copy()
-    top_species = top_n_df[species_col].tolist()
 
-    print(f"\n  Top-{cfg.top_n} species:")
+    group_order = cfg.get_group_order()
+    if not group_order:
+        group_order = sorted(meta[cfg.meta_group_col].dropna().unique().tolist())
+
+    if cfg.top_n_mode == "group_union":
+        # Each group selects its own Top-N, then take the union
+        print(f"\n  Top-N mode: group_union (each group Top-{cfg.top_n}, then union)")
+        meta_indexed = meta.set_index(cfg.meta_sample_col)
+        sample_to_group = meta_indexed[cfg.meta_group_col].to_dict()
+
+        group_samples = {}
+        for s in sample_cols:
+            g = sample_to_group.get(s)
+            if g is not None:
+                group_samples.setdefault(g, []).append(s)
+
+        all_top = set()
+        for g in group_order:
+            g_samples = group_samples.get(g, [])
+            if g_samples:
+                g_means = result[g_samples].mean(axis=1)
+                g_top = g_means.sort_values(ascending=False).head(cfg.top_n)
+                top_names = result.loc[g_top.index, species_col].tolist()
+                all_top.update(top_names)
+                print(f"    {g}: {len(top_names)} species selected (n={len(g_samples)} samples)")
+
+        # Sort union by overall mean abundance
+        top_species = (
+            result[result[species_col].isin(all_top)]
+            .sort_values("Mean_abundance", ascending=False)[species_col]
+            .tolist()
+        )
+        print(f"  Union total: {len(top_species)} species")
+    else:
+        # Overall mean Top-N (default)
+        print(f"\n  Top-N mode: overall_mean (Top-{cfg.top_n} by mean across all samples)")
+        top_n_df = result.sort_values("Mean_abundance", ascending=False).head(cfg.top_n).copy()
+        top_species = top_n_df[species_col].tolist()
+
+    top_n_df = result[result[species_col].isin(top_species)].sort_values("Mean_abundance", ascending=False).copy()
+
+    print(f"\n  Selected species ({len(top_species)}):")
     for i, s in enumerate(top_species, 1):
-        print(f"    {i:2d}. {s} (mean={top_n_df.iloc[i-1]['Mean_abundance']:.2f}%)")
+        row = top_n_df[top_n_df[species_col] == s].iloc[0]
+        print(f"    {i:2d}. {s} (mean={row['Mean_abundance']:.2f}%)")
 
     top10_path = os.path.join(base_dir, f"top{cfg.top_n}_species.xlsx")
     top_n_df.to_excel(top10_path, index=False)
@@ -100,9 +140,6 @@ def run_step5(cfg: PipelineConfig, merged_path: str = None, meta_path: str = Non
 
     group_summary = comp_top.groupby(cfg.meta_group_col).mean()
 
-    group_order = cfg.get_group_order()
-    if not group_order:
-        group_order = sorted(meta[cfg.meta_group_col].dropna().unique().tolist())
     group_order = [g for g in group_order if g in group_summary.index]
     group_summary = group_summary.loc[group_order]
 

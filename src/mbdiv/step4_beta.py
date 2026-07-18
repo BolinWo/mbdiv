@@ -1,4 +1,4 @@
-"""Step 4: beta diversity - Bray-Curtis distance, PCoA, PERMANOVA."""
+"""Step 4: beta diversity - Bray-Curtis distance, PCoA, PERMANOVA, PERMDISP."""
 
 import os
 import numpy as np
@@ -7,6 +7,7 @@ from scipy.spatial.distance import pdist, squareform
 
 from .config import PipelineConfig
 from .theme import set_theme, plot_pcoa
+from .stats_utils import bh_fdr, permdisp, permanova_manual
 
 
 def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
@@ -42,7 +43,7 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     distance.to_excel(dist_path)
     print(f"  Distance matrix saved: {dist_path}")
 
-    # PCoA - prefer scikit-bio, fall back to manual SVD
+    # PCoA - prefer scikit-bio, fall back to manual
     try:
         from skbio.stats.ordination import pcoa as skbio_pcoa
         from skbio.stats.distance import DistanceMatrix
@@ -77,41 +78,75 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
     variance.to_excel(var_path, index=False)
     print(f"  PCoA variance saved: {var_path}")
 
-    # PERMANOVA
-    permanova_p = None
-    try:
-        from skbio.stats.distance import permanova
+    # Build group labels aligned with distance matrix
+    meta_indexed = meta.set_index(cfg.meta_sample_col)
+    samples = list(distance.index)
+    groups = meta_indexed.loc[samples, cfg.meta_group_col].values
+    D = distance.values.astype(float)
 
-        meta_indexed = meta.set_index(cfg.meta_sample_col)
-        samples = list(distance.index)
-        meta_matched = meta_indexed.loc[samples]
+    # Handle NaN/Inf in distance matrix
+    if np.any(np.isnan(D)) or np.any(np.isinf(D)):
+        print("  WARNING: NaN/Inf in distance matrix — replacing with 0")
+        D = np.nan_to_num(D, nan=0.0, posinf=1.0, neginf=0.0)
 
-        dm = DistanceMatrix(
-            np.ascontiguousarray(distance.values, dtype=float),
-            ids=samples,
-        )
+    # PERMANOVA (manual implementation for R²)
+    nperm = cfg.beta_permanova_permutations
+    perm_F, perm_p, perm_R2 = permanova_manual(D, groups, nperm=nperm)
+    print(f"  PERMANOVA: F={perm_F:.2f}, p={perm_p:.4f}, R²={perm_R2:.4f}")
 
-        permanova_result = permanova(
-            dm, meta_matched,
-            column=cfg.meta_group_col,
-            permutations=cfg.beta_permanova_permutations,
-        )
-        permanova_p = permanova_result.get("p-value", None)
+    # PERMDISP (betadisper)
+    disp_F, disp_p = permdisp(D, groups, nperm=nperm)
+    disp_sig = "YES" if disp_p > 0.05 else "NO — PERMANOVA may be confounded"
+    print(f"  PERMDISP:  F={disp_F:.2f}, p={disp_p:.4f}  (equal dispersion: {disp_sig})")
 
-        with open(os.path.join(stat_dir, "PERMANOVA_result.txt"), "w") as f:
-            f.write(str(permanova_result))
-        print(f"  PERMANOVA p-value: {permanova_p}")
-        print(f"  PERMANOVA result saved: {os.path.join(stat_dir, 'PERMANOVA_result.txt')}")
+    # BH FDR correction across PERMANOVA + PERMDISP
+    raw_pvals = {"PERMANOVA": perm_p, "PERMDISP": disp_p}
+    test_names = list(raw_pvals.keys())
+    p_list = [raw_pvals[k] for k in test_names]
+    fdr_vals = bh_fdr(p_list)
+    fdr_map = {k: round(float(f), 4) for k, f in zip(test_names, fdr_vals)}
 
-    except ImportError:
-        print("  scikit-bio not available, skipping PERMANOVA")
-        with open(os.path.join(stat_dir, "PERMANOVA_result.txt"), "w") as f:
-            f.write("PERMANOVA: scikit-bio not available\n")
+    print("\n  --- FDR-corrected p-values (Benjamini-Hochberg) ---")
+    for k in test_names:
+        p_raw = raw_pvals[k]
+        p_adj = fdr_map[k]
+        sig = "***" if p_adj < 0.001 else "**" if p_adj < 0.01 else "*" if p_adj < 0.05 else "ns"
+        print(f"    {k:12s}: p_raw={p_raw:.4f}  p_adj={p_adj:.4f} {sig}")
 
-    except Exception as e:
-        print(f"  PERMANOVA error: {e}")
-        with open(os.path.join(stat_dir, "PERMANOVA_result.txt"), "w") as f:
-            f.write(f"PERMANOVA error: {e}\n")
+    # Save statistics
+    stat_df = pd.DataFrame([
+        {
+            "Test": "PERMANOVA",
+            "F_statistic": round(perm_F, 2),
+            "R_squared": round(perm_R2, 4),
+            "p_value": round(perm_p, 4),
+            "p_fdr": fdr_map["PERMANOVA"],
+            "permutations": nperm,
+        },
+        {
+            "Test": "PERMDISP",
+            "F_statistic": disp_F,
+            "R_squared": "",
+            "p_value": disp_p,
+            "p_fdr": fdr_map["PERMDISP"],
+            "permutations": nperm,
+        },
+    ])
+    stat_path = os.path.join(stat_dir, "beta_statistics.xlsx")
+    stat_df.to_excel(stat_path, index=False)
+    print(f"  Statistics saved: {stat_path}")
+
+    permanova_stats = {
+        "F": perm_F,
+        "p": perm_p,
+        "p_fdr": fdr_map["PERMANOVA"],
+        "R2": perm_R2,
+    }
+    permdisp_stats = {
+        "F": disp_F,
+        "p": disp_p,
+        "p_fdr": fdr_map["PERMDISP"],
+    }
 
     # PCoA plot
     set_theme(cfg)
@@ -124,17 +159,16 @@ def run_step4(cfg: PipelineConfig, rel_path: str = None, meta_path: str = None):
         coords, variance, meta,
         cfg.meta_group_col, cfg.meta_sample_col,
         group_order, colors,
-        permanova_p,
+        permanova_stats, permdisp_stats,
         fig_dir, cfg,
     )
     print(f"  PCoA plot saved to: {fig_dir}")
 
     print("  Beta diversity analysis complete.")
-    return dist_path, coords_path, permanova_p
+    return dist_path, coords_path, perm_p
 
 
 def _manual_pcoa(distance: pd.DataFrame, cfg: PipelineConfig):
-    """PCoA via eigendecomposition when scikit-bio is unavailable."""
     n = distance.shape[0]
     D = distance.values.astype(float)
 

@@ -178,7 +178,7 @@ group_order:
     │   │   ├── pcoa_coordinates.xlsx
     │   │   └── pcoa_variance.xlsx
     │   ├── statistics/
-    │   │   └── PERMANOVA_result.txt
+    │   │   └── beta_statistics.xlsx
     │   └── figures/
     │       └── PCoA_BrayCurtis.{pdf,png}
     └── step5/                       # Top-N 物种组成
@@ -208,23 +208,26 @@ group_order:
 - **Shannon** — H' 指数（自然对数）
 - **Simpson** — Gini-Simpson（1-D）
 - **Chao1** — 丰富度估计量（仅整数 read count 数据可用；RPKM/相对丰度自动跳过）
-- Kruskal-Wallis 组间检验
-- 可选：与数值型元数据的 Spearman 相关性（自动检测数值列）
-- 箱线图 + 抖动点可视化（PDF + PNG）
+- Kruskal-Wallis 组间检验 + 效应量（ε²）+ BH FDR 校正
+- 可选：与数值型元数据的 Spearman 相关性（自动检测数值列，FDR 校正）
+- 箱线图 + 抖动点可视化（PDF + PNG），图中标注 H 值、ε²、原始 p 值和 FDR 校正 p 值
 
 > **Chao1 说明**：Chao1 估计量依赖 singleton（count=1）和 doubleton（count=2）的计数，仅适用于整数 read count 数据。当输入为 RPKM 或相对丰度等连续值时，流程会自动跳过 Chao1 并打印警告。如需计算 Chao1，请提供原始 read count 数据。
 
 ### 步骤 4：Beta 多样性
 - Bray-Curtis 距离矩阵
 - PCoA 排序（scikit-bio，不可用时降级为 SVD）
-- PERMANOVA 检验（999 次置换）
+- PERMANOVA 检验（999 次置换）+ R² 效应量 + BH FDR 校正
+- PERMDISP 多元离散度检验（验证 PERMANOVA 等离散假设）
 - PCoA 散点图 + 95% 置信椭圆
-- 动态坐标轴标签（方差解释百分比）与 PERMANOVA p 值标注
+- 图中标注 PERMANOVA（F、R²、p、p_adj）和 PERMDISP（F、p、p_adj）
 
 ### 步骤 5：Top-N 物种组成
 - 根据分类学关键词过滤病毒和真菌
 - 在仅细菌数据上重新计算相对丰度
-- 按平均丰度选取 Top-N 物种
+- 两种 Top-N 筛选模式（通过 `top_n_mode` 配置）：
+  - `overall_mean`（默认）：按所有样本均值选 Top-N
+  - `group_union`：每组各自选 Top-N，取并集（对组间差异更敏感）
 - 分组水平堆叠柱状图
 - 个体样本热图
 

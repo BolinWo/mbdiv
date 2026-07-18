@@ -58,6 +58,7 @@ def plot_alpha_boxplot(
     alpha_df, metric: str, group_col: str,
     group_order: List[str], colors: Dict[str, str],
     output_dir: str, cfg: PipelineConfig,
+    stats_info: Optional[dict] = None,
 ):
     fig, ax = plt.subplots(figsize=(5.5, 4.5), dpi=cfg.fig_dpi)
 
@@ -79,6 +80,31 @@ def plot_alpha_boxplot(
     ax.set_title(metric, fontsize=15, weight="bold")
     ax.tick_params(labelsize=11)
     sns.despine()
+
+    if stats_info:
+        stat_val = stats_info.get("stat", 0)
+        p_raw = stats_info.get("p_raw", 1)
+        effect_size = stats_info.get("effect_size", 0)
+        effect_name = stats_info.get("effect_name", "")
+        p_fdr = stats_info.get("p_fdr", p_raw)
+
+        sig = "***" if p_fdr < 0.001 else "**" if p_fdr < 0.01 else "*" if p_fdr < 0.05 else "ns"
+        clr = "#C0392B" if p_fdr < 0.05 else "#95A5A6"
+
+        stat_label = "H" if effect_name == "ε²" else "F"
+        text_str = (
+            f"{stat_label} = {stat_val:.2f}\n"
+            f"{effect_name} = {effect_size:.4f}\n"
+            f"p = {p_raw:.4f}\n"
+            f"p_adj = {p_fdr:.4f} {sig}"
+        )
+        ax.text(
+            0.97, 0.97, text_str,
+            transform=ax.transAxes, ha="right", va="top", fontsize=8.5,
+            fontweight="bold", color=clr,
+            bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=clr, alpha=0.92, lw=1),
+        )
+
     plt.tight_layout()
 
     os.makedirs(output_dir, exist_ok=True)
@@ -90,7 +116,8 @@ def plot_pcoa(
     pcoa_df, variance_df, meta_df,
     group_col: str, sample_col: str,
     group_order: List[str], colors: Dict[str, str],
-    permanova_p: Optional[float],
+    permanova_stats: Optional[dict],
+    permdisp_stats: Optional[dict],
     output_dir: str, cfg: PipelineConfig,
 ):
     df = pcoa_df.merge(meta_df, on=sample_col, how="left")
@@ -119,12 +146,33 @@ def plot_pcoa(
     ax.set_ylabel(pc2_label, fontsize=14, weight="bold")
     ax.legend(frameon=False, fontsize=12)
 
-    if permanova_p is not None:
+    if permanova_stats:
+        perm_F = permanova_stats.get("F", 0)
+        perm_p = permanova_stats.get("p", 1)
+        perm_p_fdr = permanova_stats.get("p_fdr", perm_p)
+        perm_R2 = permanova_stats.get("R2", 0)
+        perm_sig = "***" if perm_p_fdr < 0.001 else "**" if perm_p_fdr < 0.01 else "*" if perm_p_fdr < 0.05 else "ns"
+        perm_clr = "#C0392B" if perm_p_fdr < 0.05 else "#95A5A6"
+
+        text_lines = [
+            f"PERMANOVA  F = {perm_F:.2f}  R² = {perm_R2:.4f}",
+            f"p = {perm_p:.4f}  p_adj = {perm_p_fdr:.4f} {perm_sig}",
+        ]
+
+        if permdisp_stats:
+            disp_F = permdisp_stats.get("F", 0)
+            disp_p = permdisp_stats.get("p", 1)
+            disp_p_fdr = permdisp_stats.get("p_fdr", disp_p)
+            disp_sig = "***" if disp_p_fdr < 0.001 else "**" if disp_p_fdr < 0.01 else "*" if disp_p_fdr < 0.05 else "ns"
+            text_lines.append(f"PERMDISP   F = {disp_F:.2f}  p = {disp_p:.4f}  p_adj = {disp_p_fdr:.4f} {disp_sig}")
+
         ax.text(
             0.95, 0.95,
-            f"PERMANOVA\np = {permanova_p:.3f}",
+            "\n".join(text_lines),
             transform=ax.transAxes,
-            ha="right", va="top", fontsize=11,
+            ha="right", va="top", fontsize=9,
+            fontweight="bold", color=perm_clr,
+            bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=perm_clr, alpha=0.92, lw=1),
         )
 
     sns.despine(top=True, right=True)

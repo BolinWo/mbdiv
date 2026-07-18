@@ -56,6 +56,7 @@ class PipelineConfig:
         "d__Viruses", "k__Viruses",
     ])
     top_n: int = 10
+    top_n_mode: str = "overall_mean"  # "overall_mean" or "group_union"
 
     # plotting
     group_order: List[str] = field(default_factory=list)
